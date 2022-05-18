@@ -16,3 +16,6 @@ vendor/
 
 # go.sum
 go.sum
+
+# env
+*.env
