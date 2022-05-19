@@ -37,6 +37,53 @@ func init() {
 
 // MONGO HELPERS
 
+func GetAllTodo(ginContext *gin.Context) {
+	cursor, err := collection.Find(context.Background(), bson.M{})
+
+	if err != nil {
+		ginContext.JSON(500, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	var todos []bson.M
+
+	for cursor.Next(context.Background()) {
+		var todo bson.M
+		err := cursor.Decode(&todo)
+
+		if err != nil {
+			ginContext.JSON(500, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
+
+		todos = append(todos, todo)
+	}
+
+	defer cursor.Close(context.Background())
+
+	ginContext.JSON(200, todos)
+}
+
+func GetOneTodo(ginContext *gin.Context, todoId string) {
+	id, _ := primitive.ObjectIDFromHex(todoId)
+	filter := bson.M{"_id": id}
+
+	var todo bson.M
+
+	if err := collection.FindOne(context.Background(), filter).Decode(&todo); err != nil {
+		ginContext.JSON(500, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	ginContext.JSON(200, todo)
+}
+
 func AddTodo(ginContext *gin.Context, todo string) {
 	inserted, err := collection.InsertOne(context.Background(), model.Todo{
 		Todo:       todo,
@@ -81,7 +128,7 @@ func DeleteTodo(ginContext *gin.Context, todoId string) {
 	id, _ := primitive.ObjectIDFromHex(todoId)
 	filter := bson.M{"_id": id}
 
-	deleteCount, err := collection.DeleteOne(context.Background(), filter)
+	_, err := collection.DeleteOne(context.Background(), filter)
 
 	if err != nil {
 		ginContext.JSON(500, gin.H{
@@ -90,36 +137,7 @@ func DeleteTodo(ginContext *gin.Context, todoId string) {
 		return
 	}
 
-	fmt.Println("delete count", deleteCount)
-}
-
-func GetAllTodo(ginContext *gin.Context) {
-	cursor, err := collection.Find(context.Background(), bson.M{})
-
-	if err != nil {
-		ginContext.JSON(500, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
-
-	var todos []primitive.M
-
-	for cursor.Next(context.Background()) {
-		var todo bson.M
-		err := cursor.Decode(&todo)
-
-		if err != nil {
-			ginContext.JSON(500, gin.H{
-				"message": err.Error(),
-			})
-			return
-		}
-
-		todos = append(todos, todo)
-	}
-
-	defer cursor.Close(context.Background())
-
-	ginContext.JSON(200, todos)
+	ginContext.JSON(200, gin.H{
+		"message": "deleted successfully",
+	})
 }
